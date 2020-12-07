@@ -1,0 +1,12 @@
+
+
+umount /dev/sr0
+blocks=$(isosize -d 2048 /dev/sr0)
+echo "$blocks"
+
+if [ "$1" = "" ]
+then
+	echo "None"
+else
+	echo "$1"
+fi
