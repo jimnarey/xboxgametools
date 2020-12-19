@@ -72,6 +72,7 @@ class ArchiveFile:
         self._get_ok_ro(ok_ro_list)
         self._cross_ref_matches()
 
+<<<<<<< HEAD
     # def _sort_matches_by_dump(self, ok_dump_regexes):
     #     if self.matches:
     #         dump_sorted = []
@@ -96,6 +97,31 @@ class ArchiveFile:
     def num_matches(self):
         return len(self.matches) if self.matches else 0
 
+=======
+    def _sort_matches_by_dump(self, ok_dump_regexes):
+        dump_sorted = []
+        for regex in ok_dump_regexes:
+            for index, entry in enumerate(self.matches):
+                if any(re.match(regex, ro_code) for dump_code in entry.dump_codes):
+                    dump_sorted.append(self.matches.pop(index))
+        self.matches = dump_sorted.extend(self.matches)
+
+    def _sort_matches_by_ro(self, ok_ro_codes):
+        ro_sorted = []
+        for code in ok_ro_codes:
+            for index, entry in enumerate(self.matches):
+                if code in entry.ro_codes:
+                    ro_sorted.append(self.matches.pop(index))
+        self.matches = ro_sorted.extend(self.matches)
+
+    def sort_matches(self):
+        self._sort_matches_by_ro()
+        self._sort_matches_by_dump()
+
+    def num_matches(self):
+        return len(self.matches)
+
+>>>>>>> 5d5ff73d3373f9a26e73e75130c313a504fc1e84
     # Use set
     def all_codes(self, code_type):
         codes = []
@@ -171,6 +197,8 @@ class RomRootFolder:
         summary_lines.extend(['\n', '\n'])
         for arch in self.no_matches:
             summary_lines.append(arch.summary())
+            summary_lines.append(arch.matches[0].entry_name)
+            summary_lines.append('\n')
             for entry in arch.all_entries:
                 summary_lines.append(
                     '{entry}\n'.format(entry=entry.entry_name))
