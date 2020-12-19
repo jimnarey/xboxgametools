@@ -36,6 +36,9 @@ class ArchiveFile:
         self.matches = []
         self.best_match = None
 
+    def name(self):
+        return os.path.basename(self.file_path)
+
     def populate_entries(self):
         try:
             with py7zr.SevenZipFile(self.file_path, mode='r') as arch:
@@ -68,11 +71,28 @@ class ArchiveFile:
         self._get_ok_ro(ok_ro_list)
         self._cross_ref_matches()
 
+    def _sort_matches_by_dump(self, ok_dump_regexes):
+        dump_sorted = []
+        for regex in ok_dump_regexes:
+            for index, entry in enumerate(self.matches):
+                if any(re.match(regex, ro_code) for dump_code in entry.dump_codes):
+                    dump_sorted.append(self.matches.pop(index))
+        self.matches = dump_sorted.extend(self.matches)
+
+    def _sort_matches_by_ro(self, ok_ro_codes):
+        ro_sorted = []
+        for code in ok_ro_codes:
+            for index, entry in enumerate(self.matches):
+                if code in entry.ro_codes:
+                    ro_sorted.append(self.matches.pop(index))
+        self.matches = ro_sorted.extend(self.matches)
+
+    def sort_matches(self):
+        self._sort_matches_by_ro()
+        self._sort_matches_by_dump()
+
     def num_matches(self):
         return len(self.matches)
-
-    def name(self):
-        return os.path.basename(self.file_path)
 
     # Use set
     def all_codes(self, code_type):
@@ -146,6 +166,8 @@ class RomRootFolder:
         summary_lines.extend(['\n', '\n'])
         for arch in self.no_matches:
             summary_lines.append(arch.summary())
+            summary_lines.append(arch.matches[0].entry_name)
+            summary_lines.append('\n')
             for entry in arch.all_entries:
                 summary_lines.append(
                     '{entry}\n'.format(entry=entry.entry_name))
@@ -162,15 +184,20 @@ def get_prefs(json_path):
         return json.load(json_file)
 
 
-def get_dump_code_regexes(simple_dump_codes, numeral_dump_codes):
-    simple_dc_insert = ','.join(simple_dump_codes)
-    numeral_dc_insert = ','.join(numeral_dump_codes)
-    # Use old-style string formatting for clarity since regex uses {}
-    return [
-        re.compile("^[%s][0-9]{1}" % numeral_dc_insert),
-        re.compile("[%s]" % simple_dc_insert)
-    ]
+# def get_dump_code_regexes(simple_dump_codes, numeral_dump_codes):
+#     simple_dc_insert = ','.join(simple_dump_codes)
+#     numeral_dc_insert = ','.join(numeral_dump_codes)
+#     # Use old-style string formatting for clarity since regex uses {}
+#     return [
+#         re.compile("^[%s][0-9]{1}" % numeral_dc_insert),
+#         re.compile("[%s]" % simple_dc_insert)
+#     ]
 
+def get_dump_code_regexes(ok_dump_codes):
+    regexes = []
+    for code in ok_dump_codes:
+        regexes.append(re.compile("^[%s][0-9]{0,2}" % code))
+    return regexes
 
 prefs = get_prefs('./my_json/genesis_vm.json')
 
