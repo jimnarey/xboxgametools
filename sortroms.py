@@ -1,27 +1,28 @@
 import os
 import re
+import json
 import py7zr
 # import pprint
 from py7zr import Bad7zFile
 
 
-english_language_codes = [
-                            'JUE',
-                            'UE',
-                            'JE',
-                            'JU',
-                            'E',
-                            'U',
-                            'UK',
-                            'A',
-                            '4',
-                            'W'
-                        ]
+# english_language_codes = [
+#                             'JUE',
+#                             'UE',
+#                             'JE',
+#                             'JU',
+#                             'E',
+#                             'U',
+#                             'UK',
+#                             'A',
+#                             '4',
+#                             'W'
+#                         ]
 
-ok_dump_regexes = [
-    re.compile("!"),
-    re.compile("^[a,o,f][0-9]{1}")
-]
+# ok_dump_regexes = [
+#     re.compile("!"),
+#     re.compile("^[a,o,f][0-9]{1}")
+# ]
 
 
 class ArchiveEntry:
@@ -130,24 +131,6 @@ class RomRootFolder:
                     codes.append(code)
         return codes
 
-    # def all_dump_codes(self):
-    #     dump_codes = []
-    #     for archive in self.valid_archives:
-    #         for entry in archive.all_entries:
-    #             for code in entry.dump_codes:
-    #                 if code not in dump_codes:
-    #                     dump_codes.append(code)
-    #     return dump_codes
-
-    # def all_ro_codes(self):
-    #     ro_codes = []
-    #     for archive in self.valid_archives:
-    #         for entry in archive.all_entries:
-    #             for code in entry.ro_codes:
-    #                 if code not in ro_codes:
-    #                     ro_codes.append(code)
-    #     return ro_codes
-
     def sort(self, ok_dump_regexes, ok_ro_codes):
         for arch in self.valid_archives:
             arch.get_matches(ok_dump_regexes, ok_dump_regexes)
@@ -160,14 +143,30 @@ class RomRootFolder:
             log_file.writelines(output)
 
 
-start_path_linux = '/media/jimnarey/HDD_Data_B/Romsets/Genesis Full Set/'
+ok_dump_regexes = [
+    re.compile("!"),
+    re.compile("^[a,o,f][0-9]{1}")
+]
 
-start_path_linux_vm = '/media/sf_G_DRIVE/Romsets/Genesis Full Set'
-log_path_linux_vm = '/media/sf_G_DRIVE/Romsets/genesis_log.txt'
 
-root = RomRootFolder(start_path_linux_vm, log_path_linux_vm)
+def get_prefs(json_path):
+    with open(json_path, 'r') as json_file:
+        return json.load(json_file)
+
+
+# start_path_linux = '/media/jimnarey/HDD_Data_B/Romsets/Genesis Full Set/'
+
+# start_path_linux_vm = '/media/sf_G_DRIVE/Romsets/Genesis Full Set'
+# log_path_linux_vm = '/media/sf_G_DRIVE/Romsets/genesis_log.txt'
+
+prefs = get_prefs('./my_json/genesis_vm.json')
+
+# root = RomRootFolder(start_path_linux_vm, log_path_linux_vm)
+
+# prefs = get_prefs('./my_json')
+
 # root.sort()
-root.write_log()
+# root.write_log()
 
 # for arch in root.valid_archives:
 #     arch.get_ok_dumps(ok_dump_regexes)
