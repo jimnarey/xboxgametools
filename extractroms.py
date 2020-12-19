@@ -1,14 +1,9 @@
 import os
 import re
 import py7zr
-import pprint
+# import pprint
 from py7zr import Bad7zFile
 
-start_path = '/media/jimnarey/HDD_Data_B/Romsets/Genesis Full Set/'
-
-english_language_codes = ['JUE', 'UE', 'JE', 'JU', 'E', 'U', 'UK', 'A', '4', 'W']
-
-ok_dumps = ['!', 'a', 'o', 'h', 't', 'f']
 
 class ArchiveEntry:
 
@@ -22,59 +17,50 @@ class ArchiveEntry:
         self.region_other_codes = re.findall("\((.*?)\)", self.entry_name)
         self.dump_codes = re.findall("\[(.*?)\]", self.entry_name)
 
-    # def num_dump_codes(self):
-    #     return len(self.dump_codes)
-
-    # def num_region_codes(self):
-    #     return len(self.region_codes)
-
 
 class ArchiveFile:
 
     def __init__(self, file_path):
         self.file_path = file_path
-        self.entries = []
-        self.good_dumps = []
-        self.best_version = None
+        self.all_entries = []
+        self.sorted_entries = []
+        self.ok_dumps = []
 
     def populate_entries(self):
         try:
             with py7zr.SevenZipFile(self.file_path, mode='r') as arch:
-                self.entries = [ArchiveEntry(entry) for entry in arch.getnames()]
+                self.all_entries = [ArchiveEntry(entry)
+                                    for entry in arch.getnames()]
         except (OSError, Bad7zFile):
             return False
         return True
 
-    def get_good_dumps(self):
-        for entry in self.entries:
-            if '!' in entry.dump_codes:
-                self.good_dumps.append(entry)
-            if not entry.dump_codes:
-                self.good_dumps.append(entry)
+    def cut_by_ro_codes(self, bad_codes):
+        for entry in self.sorted_entries:
+            for code in bad_codes:
+                if code in entry.region_other_codes:
+                    self.sorted_entries.remove(entry)
 
-    def get_best_version(self):
-        for ro_code in english_language_codes:
-            for entry in self.entries:
-                if ro_code in entry.region_other_codes:
-                    for dump_code in ok_dumps:
-                        if dump_code in entry.dump_codes:
-                            self.best_version = entry
-                            return
-        
-    
+    def get_ok_dumps(self, ok_dump_regexes):
+        for entry in self.all_entries:
+            for code in entry.dump_codes:
+                if any(re.match(regex, code) for regex in ok_dump_regexes):
+                    self.ok_dumps.append(entry)
+                    print(entry.entry_name)
+            if not entry.dump_codes:
+                self.ok_dumps.append(entry)
+
+
 class RomRootFolder:
 
+    # def __init__(self, dir_path, log_path):
     def __init__(self, dir_path):
         self.dir_path = dir_path
         self.file_paths = []
         self.valid_archives = []
-        self.sorted_archives = []
         self.invalid_file_paths = []
-        self.with_best_version = []
-        self.no_best_version = []
         self._get_file_paths()
         self._get_archives()
-        self._find_best_versions()
 
     def _get_file_paths(self):
         for root, dirs, files in os.walk(self.dir_path):
@@ -84,24 +70,54 @@ class RomRootFolder:
     def _get_archives(self):
         for file_path in self.file_paths:
             current_file = ArchiveFile(file_path)
-            if current_file.populate_entries() == True:
+            if current_file.populate_entries() is True:
                 self.valid_archives.append(current_file)
             else:
                 self.invalid_file_paths.append(file_path)
 
-    def _prune_archives(self):
+    def all_dump_codes(self):
+        dump_codes = []
+        for archive in self.valid_archives:
+            for entry in archive.all_entries:
+                for code in entry.dump_codes:
+                    if code not in dump_codes:
+                        dump_codes.append(code)
+        return dump_codes
+
+    def all_ro_codes(self):
+        ro_codes = []
+        for archive in self.valid_archives:
+            for entry in archive.all_entries:
+                for code in entry.region_other_codes:
+                    if code not in ro_codes:
+                        ro_codes.append(code)
+        return ro_codes
 
 
-    def _find_best_versions(self):
-        for arch in self.sorted_archives:
-            arch.get_best_version()
-            if arch.best_version:
-                self.with_best_version.append(arch)
-            else:
-                self.no_best_version.append(arch)
+start_path_linux = '/media/jimnarey/HDD_Data_B/Romsets/Genesis Full Set/'
 
-root = RomRootFolder(start_path)
-for arch in root.no_best_version:
-    for entry in arch.entries:
-        pprint.pprint(entry.entry_name)
+start_path_linux_vm = '/media/sf_G_DRIVE/Romsets/Genesis Full Set'
+log_path_linux_vm = '/media/sf_G_DRIVE/Romsets/genesis_log.txt'
 
+english_language_codes = [
+                            'JUE',
+                            'UE',
+                            'JE',
+                            'JU',
+                            'E',
+                            'U',
+                            'UK',
+                            'A',
+                            '4',
+                            'W'
+                        ]
+
+ok_dump_regexes = [
+    re.compile("!"),
+    re.compile("^[a,o,f][0-9]{1}")
+]
+
+root = RomRootFolder(start_path_linux_vm)
+
+for arch in root.valid_archives:
+    arch.get_ok_dumps(ok_dump_regexes)
