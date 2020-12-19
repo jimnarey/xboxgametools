@@ -34,6 +34,7 @@ class ArchiveFile:
         self.ok_dumps = []
         self.ok_ro = []
         self.matches = []
+        self.best_match = None
 
     def populate_entries(self):
         try:
@@ -67,7 +68,7 @@ class ArchiveFile:
         self._get_ok_ro(ok_ro_list)
         self._cross_ref_matches()
 
-    def get_num_matches(self):
+    def num_matches(self):
         return len(self.matches)
 
     def name(self):
@@ -84,10 +85,10 @@ class ArchiveFile:
 
     def summary(self):
         return '{archive} - DM: {num_dm} - ROM: {num_rom} - BOTH: {num_both}\n'.format(
-                archive=self.name(),
-                num_dm=len(self.ok_dumps),
-                num_rom=len(self.ok_ro),
-                num_both=len(self.matches))
+            archive=self.name(),
+            num_dm=len(self.ok_dumps),
+            num_rom=len(self.ok_ro),
+            num_both=len(self.matches))
 
 
 class RomRootFolder:
@@ -98,6 +99,8 @@ class RomRootFolder:
         self.file_paths = []
         self.valid_archives = []
         self.invalid_file_paths = []
+        self.has_matches = []
+        self.no_matches = []
         self._get_file_paths()
         self._get_archives()
 
@@ -126,33 +129,30 @@ class RomRootFolder:
         for arch in self.valid_archives:
             arch.get_matches(ok_dump_regexes, ok_ro_codes)
 
-    def generate_summary(self):
-        with_matches = []
-        no_matches = []
-        summary_lines = []
+    def sort_by_has_matches(self):
+        self.has_matches = []
+        self.no_matches = []
         for arch in self.valid_archives:
-            if arch.get_num_matches():
-                with_matches.append(arch)
+            if arch.num_matches():
+                self.has_matches.append(arch)
             else:
-                no_matches.append(arch)
-        summary_lines.extend(
-            ['**************************\n', 'Archives with matches\n', '\n'])
-        for arch in with_matches:
+                self.no_matches.append(arch)
+
+    def generate_summary(self):
+        self.sort_by_has_matches()
+        summary_lines = ['\n', '\n']
+        for arch in self.has_matches:
             summary_lines.append(arch.summary())
-        summary_lines.extend(
-            ['**************************\n', 'Archives WITHOUT matches\n', '\n'])
-        for arch in no_matches:
+        summary_lines.extend(['\n', '\n'])
+        for arch in self.no_matches:
             summary_lines.append(arch.summary())
             for entry in arch.all_entries:
-                summary_lines.append('{entry}\n'.format(entry=entry.entry_name))
+                summary_lines.append(
+                    '{entry}\n'.format(entry=entry.entry_name))
             summary_lines.append('\n')
         return summary_lines
 
     def write_summary(self):
-        # output = []
-        # for arch in self.valid_archives:
-        #     output.append("{file} : {matches}\n".format(
-        #         file=arch.name(), matches=str(arch.get_num_matches())))
         with open(self.summary_file_path, 'w') as summary_file:
             summary_file.writelines(self.generate_summary())
 
