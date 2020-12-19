@@ -5,6 +5,25 @@ import py7zr
 from py7zr import Bad7zFile
 
 
+english_language_codes = [
+                            'JUE',
+                            'UE',
+                            'JE',
+                            'JU',
+                            'E',
+                            'U',
+                            'UK',
+                            'A',
+                            '4',
+                            'W'
+                        ]
+
+ok_dump_regexes = [
+    re.compile("!"),
+    re.compile("^[a,o,f][0-9]{1}")
+]
+
+
 class ArchiveEntry:
 
     def __init__(self, entry_name):
@@ -23,8 +42,9 @@ class ArchiveFile:
     def __init__(self, file_path):
         self.file_path = file_path
         self.all_entries = []
-        self.sorted_entries = []
+        # self.sorted_entries = []
         self.ok_dumps = []
+        self.ok_dump_and_region = []
 
     def populate_entries(self):
         try:
@@ -35,27 +55,42 @@ class ArchiveFile:
             return False
         return True
 
-    def cut_by_ro_codes(self, bad_codes):
-        for entry in self.sorted_entries:
-            for code in bad_codes:
-                if code in entry.region_other_codes:
-                    self.sorted_entries.remove(entry)
+    # def match_dump_code(self, code_regex):
+    #     for entry in self.all_entries:
+    #         for code in entry.dump_codes:
+    #             if re.match(code_regex, code):
+    #                 return entry
+
+    # def cut_by_ro_codes(self, bad_codes):
+    #     for entry in self.sorted_entries:
+    #         for code in bad_codes:
+    #             if code in entry.region_other_codes:
+    #                 self.sorted_entries.remove(entry)
 
     def get_ok_dumps(self, ok_dump_regexes):
         for entry in self.all_entries:
             for code in entry.dump_codes:
                 if any(re.match(regex, code) for regex in ok_dump_regexes):
                     self.ok_dumps.append(entry)
-                    print(entry.entry_name)
+                    # print(entry.entry_name)
             if not entry.dump_codes:
                 self.ok_dumps.append(entry)
+
+    def get_ok_dumps_regions(self, ok_ro_list):
+        for entry in self.ok_dumps:
+            for code in ok_ro_list:
+                if code in entry.region_other_codes:
+                    self.ok_dump_and_region.append(entry)
+ 
+    def get_num_matches(self):
+        return len(self.ok_dump_and_region)
 
 
 class RomRootFolder:
 
-    # def __init__(self, dir_path, log_path):
-    def __init__(self, dir_path):
+    def __init__(self, dir_path, log_path):
         self.dir_path = dir_path
+        self.log_path = log_path
         self.file_paths = []
         self.valid_archives = []
         self.invalid_file_paths = []
@@ -93,31 +128,28 @@ class RomRootFolder:
                         ro_codes.append(code)
         return ro_codes
 
+    def sort(self):
+        for arch in self.valid_archives:
+            arch.get_ok_dumps(ok_dump_regexes)
+            arch.get_ok_dumps_regions(english_language_codes)
+
+    def write_log(self):
+        output = []
+        for arch in self.valid_archives:
+            # output.append(arch.file_path + str(arch.get_num_matches()) + " - " + '\n')
+            output.append("{file} : {matches}\n".format(file=arch.file_path, matches=str(arch.get_num_matches())))
+        with open(self.log_path, 'w') as log_file:
+            log_file.writelines(output)
+
 
 start_path_linux = '/media/jimnarey/HDD_Data_B/Romsets/Genesis Full Set/'
 
 start_path_linux_vm = '/media/sf_G_DRIVE/Romsets/Genesis Full Set'
 log_path_linux_vm = '/media/sf_G_DRIVE/Romsets/genesis_log.txt'
 
-english_language_codes = [
-                            'JUE',
-                            'UE',
-                            'JE',
-                            'JU',
-                            'E',
-                            'U',
-                            'UK',
-                            'A',
-                            '4',
-                            'W'
-                        ]
+root = RomRootFolder(start_path_linux_vm, log_path_linux_vm)
+root.sort()
+root.write_log()
 
-ok_dump_regexes = [
-    re.compile("!"),
-    re.compile("^[a,o,f][0-9]{1}")
-]
-
-root = RomRootFolder(start_path_linux_vm)
-
-for arch in root.valid_archives:
-    arch.get_ok_dumps(ok_dump_regexes)
+# for arch in root.valid_archives:
+#     arch.get_ok_dumps(ok_dump_regexes)
