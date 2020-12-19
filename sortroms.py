@@ -82,12 +82,19 @@ class ArchiveFile:
                     codes.append(code)
         return codes
 
+    def summary(self):
+        return '{archive} - DM: {num_dm} - ROM: {num_rom} - BOTH: {num_both}\n'.format(
+                archive=self.name(),
+                num_dm=len(self.ok_dumps),
+                num_rom=len(self.ok_ro),
+                num_both=len(self.matches))
+
 
 class RomRootFolder:
 
-    def __init__(self, dir_path, summary_path):
+    def __init__(self, dir_path, summary_file_path):
         self.dir_path = dir_path
-        self.summary_path = summary_path
+        self.summary_file_path = summary_file_path
         self.file_paths = []
         self.valid_archives = []
         self.invalid_file_paths = []
@@ -119,15 +126,35 @@ class RomRootFolder:
         for arch in self.valid_archives:
             arch.get_matches(ok_dump_regexes, ok_ro_codes)
 
-
+    def generate_summary(self):
+        with_matches = []
+        no_matches = []
+        summary_lines = []
+        for arch in self.valid_archives:
+            if arch.get_num_matches():
+                with_matches.append(arch)
+            else:
+                no_matches.append(arch)
+        summary_lines.extend(
+            ['**************************\n', 'Archives with matches\n', '\n'])
+        for arch in with_matches:
+            summary_lines.append(arch.summary())
+        summary_lines.extend(
+            ['**************************\n', 'Archives WITHOUT matches\n', '\n'])
+        for arch in no_matches:
+            summary_lines.append(arch.summary())
+            for entry in arch.all_entries:
+                summary_lines.append('{entry}\n'.format(entry=entry.entry_name))
+            summary_lines.append('\n')
+        return summary_lines
 
     def write_summary(self):
-        output = []
-        for arch in self.valid_archives:
-            output.append("{file} : {matches}\n".format(
-                file=arch.name(), matches=str(arch.get_num_matches())))
-        with open(self.summary_path, 'w') as summary_file:
-            summary_file.writelines(output)
+        # output = []
+        # for arch in self.valid_archives:
+        #     output.append("{file} : {matches}\n".format(
+        #         file=arch.name(), matches=str(arch.get_num_matches())))
+        with open(self.summary_file_path, 'w') as summary_file:
+            summary_file.writelines(self.generate_summary())
 
 
 def get_prefs(json_path):
@@ -142,7 +169,7 @@ def get_dump_code_regexes(simple_dump_codes, numeral_dump_codes):
     return [
         re.compile("^[%s][0-9]{1}" % numeral_dc_insert),
         re.compile("[%s]" % simple_dc_insert)
-        ]
+    ]
 
 
 prefs = get_prefs('./my_json/genesis_vm.json')
