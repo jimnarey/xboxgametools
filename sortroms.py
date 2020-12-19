@@ -2,7 +2,7 @@ import os
 import re
 import json
 import py7zr
-# import pprint
+import pprint
 from py7zr import Bad7zFile
 
 
@@ -72,22 +72,31 @@ class ArchiveFile:
                 self.ok_dumps.append(entry)
 
     def _get_ok_ro(self, ok_ro_list):
+        # print(ok_ro_list)
         for entry in self.all_entries:
             for code in ok_ro_list:
                 if code in entry.ro_codes:
                     self.ok_ro.append(entry)
 
     def _cross_ref_matches(self):
-        if self.ok_dumps and self.ok_ro:
-            self.matches = [entry for entry in self.ok_dumps if entry in self.ok_ro]
+        # if self.ok_dumps or self.ok_ro:
+        # print('*************************')
+        # print(self.name())
+        # pprint.pprint(self.ok_ro)
+        # pprint.pprint(self.ok_dumps)
+        self.matches = [entry for entry in self.ok_dumps if entry in self.ok_ro]
 
     def get_matches(self, ok_dump_regexes, ok_ro_list):
         self._get_ok_dumps(ok_dump_regexes)
         self._get_ok_ro(ok_ro_list)
-        self._cross_ref_matches
+        self._cross_ref_matches()
 
     def get_num_matches(self):
+        # return str(len(self.ok_dumps)) + ' ' + str(len(self.ok_ro))
         return len(self.matches)
+
+    def name(self):
+        return os.path.basename(self.file_path)
 
     # Use set
     def all_codes(self, code_type):
@@ -133,20 +142,20 @@ class RomRootFolder:
 
     def sort(self, ok_dump_regexes, ok_ro_codes):
         for arch in self.valid_archives:
-            arch.get_matches(ok_dump_regexes, ok_dump_regexes)
+            arch.get_matches(ok_dump_regexes, ok_ro_codes)
 
     def write_log(self):
         output = []
         for arch in self.valid_archives:
-            output.append("{file} : {matches}\n".format(file=arch.file_path, matches=str(arch.get_num_matches())))
+            output.append("{file} : {matches}\n".format(file=arch.name(), matches=str(arch.get_num_matches())))
         with open(self.log_path, 'w') as log_file:
             log_file.writelines(output)
 
 
-ok_dump_regexes = [
-    re.compile("!"),
-    re.compile("^[a,o,f][0-9]{1}")
-]
+# ok_dump_regexes = [
+#     re.compile("!"),
+#     re.compile("^[a,o,f][0-9]{1}")
+# ]
 
 
 def get_prefs(json_path):
@@ -154,12 +163,29 @@ def get_prefs(json_path):
         return json.load(json_file)
 
 
+def get_dump_code_regexes(simple_dump_codes, numeral_dump_codes):
+    simple_dc_insert = ','.join(simple_dump_codes)
+    numeral_dc_insert = ','.join(numeral_dump_codes)
+    # Use old-style string formatting for clarity since regex uses {}
+    return [re.compile("^[%s][0-9]{1}" % numeral_dc_insert), re.compile("[%s]" % simple_dc_insert)]
+
 # start_path_linux = '/media/jimnarey/HDD_Data_B/Romsets/Genesis Full Set/'
 
 # start_path_linux_vm = '/media/sf_G_DRIVE/Romsets/Genesis Full Set'
 # log_path_linux_vm = '/media/sf_G_DRIVE/Romsets/genesis_log.txt'
 
+# all_ok_dump_codes
+
+
 prefs = get_prefs('./my_json/genesis_vm.json')
+
+root = RomRootFolder(prefs['rootDir'], prefs['logPath'])
+
+ok_dump_regexes = get_dump_code_regexes(prefs['okSimpleDumpCodes'], prefs['okDumpCodesWithNumeral'])
+
+root.sort(ok_dump_regexes, prefs['okRoCodes'])
+
+root.write_log()
 
 # root = RomRootFolder(start_path_linux_vm, log_path_linux_vm)
 

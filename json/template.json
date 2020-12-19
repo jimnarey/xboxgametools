@@ -2,8 +2,8 @@
     "rootDir": "",
     "targetDir": "",
     "logPath": "",
-    "preferredDumpCode" : "!",
-    "otherOkDumpCodes": ["o", "a", "f"],
+    "okSimpleDumpCodes": ["!"],
+    "okDumpCodesWithNumeral": ["o", "a", "f"],
     "okRoCodes": ["JUE", "UE", "JE", "JU", "E", "U", "UK", "A", "4", "W", "Beta"],
     "writeLog": true,
     "writeFiles": false
