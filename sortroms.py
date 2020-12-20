@@ -136,6 +136,7 @@ class RomRootFolder:
         for arch in self.valid_archives:
             arch.get_matches(ok_dump_regexes, ok_ro_codes)
 
+    # TO DO - Tighten, move functionality to Archive and move to separate class
     def generate_summary(self):
         has_matches = 0
         no_matches = 0
@@ -145,7 +146,6 @@ class RomRootFolder:
             if arch.num_matches():
                 has_matches += 1
                 has_matches_lines.append(arch.summary())
-                # print(arch.file_path)
                 has_matches_lines.append(arch.matches[0].entry_name)
                 has_matches_lines.append('\n\n')
             else:
@@ -155,7 +155,11 @@ class RomRootFolder:
                     no_matches_lines.append(
                         '{entry}\n'.format(entry=entry.entry_name))
                 no_matches_lines.append('\n')
-        headlines = ['Total archives: {0}\n'.format(len(self.valid_archives)), 'With matches: {0}\n'.format(has_matches), 'No matches: {0}\n'.format(no_matches), '\n']
+        headlines = [
+            'Total archives: {0}\n'.format(len(self.valid_archives)),
+            'With matches: {0}\n'.format(has_matches),
+            'No matches: {0}\n'.format(no_matches), '\n'
+            ]
         return headlines + has_matches_lines + no_matches_lines
 
     def write_summary(self, summary_file_path):
