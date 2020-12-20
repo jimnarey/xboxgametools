@@ -64,34 +64,12 @@ class ArchiveFile:
 
     def _cross_ref_matches(self):
         self.matches = [
-            # entry for entry in self.ok_dumps if entry in self.ok_ro]
             entry for entry in self.ok_ro if entry in self.ok_dumps]
 
     def get_matches(self, ok_dump_regexes, ok_ro_list):
         self._get_ok_dumps(ok_dump_regexes)
         self._get_ok_ro(ok_ro_list)
         self._cross_ref_matches()
-
-    # def _sort_matches_by_dump(self, ok_dump_regexes):
-    #     if self.matches:
-    #         dump_sorted = []
-    #         for regex in ok_dump_regexes:
-    #                 for index, entry in enumerate(self.matches):
-    #                     if any(re.match(regex, ro_code) for dump_code in entry.dump_codes):
-    #                         dump_sorted.append(self.matches.pop(index))
-    #         self.matches = dump_sorted.extend(self.matches)
-
-    # def _sort_matches_by_ro(self, ok_ro_codes):
-    #     ro_sorted = []
-    #     for code in ok_ro_codes:
-    #         for index, entry in enumerate(self.matches):
-    #             if code in entry.ro_codes:
-    #                 ro_sorted.append(self.matches.pop(index))
-    #     self.matches = ro_sorted.extend(self.matches)
-
-    # def sort_matches(self, ok_dump_regexes, ok_ro_codes):
-    #     self._sort_matches_by_ro(ok_ro_codes)
-    #     self._sort_matches_by_dump(ok_dump_regexes)
 
     def num_matches(self):
         return len(self.matches) if self.matches else 0
@@ -112,17 +90,25 @@ class ArchiveFile:
             num_rom=len(self.ok_ro),
             num_both=self.num_matches())
 
+    def extract_entry(self, target_path, entry_name):
+        with py7zr.SevenZipFile(self.file_path, 'r') as arch:
+            arch.extract(path=target_path, targets=[entry_name])
+
+    def extract_best_match(self, target_path):
+        self.extract_entry(target_path, self.matches[0].entry_name)
+
 
 class RomRootFolder:
 
-    def __init__(self, dir_path, summary_file_path):
+    # def __init__(self, dir_path, summary_file_path):
+    def __init__(self, dir_path):
         self.dir_path = dir_path
-        self.summary_file_path = summary_file_path
+        # self.summary_file_path = summary_file_path
         self.file_paths = []
         self.valid_archives = []
         self.invalid_file_paths = []
-        self.has_matches = []
-        self.no_matches = []
+        # self.has_matches = []
+        # self.no_matches = []
         self._get_file_paths()
         self._get_archives()
 
@@ -152,14 +138,14 @@ class RomRootFolder:
             arch.get_matches(ok_dump_regexes, ok_ro_codes)
             # arch.sort_matches(ok_dump_regexes, ok_ro_codes)
 
-    def sort_by_has_matches(self):
-        self.has_matches = []
-        self.no_matches = []
-        for arch in self.valid_archives:
-            if arch.num_matches():
-                self.has_matches.append(arch)
-            else:
-                self.no_matches.append(arch)
+    # def sort_by_has_matches(self):
+    #     self.has_matches = []
+    #     self.no_matches = []
+    #     for arch in self.valid_archives:
+    #         if arch.num_matches():
+    #             self.has_matches.append(arch)
+    #         else:
+    #             self.no_matches.append(arch)
 
     def generate_summary(self):
         self.sort_by_has_matches()
@@ -179,9 +165,14 @@ class RomRootFolder:
             summary_lines.append('\n')
         return summary_lines
 
-    def write_summary(self):
-        with open(self.summary_file_path, 'w') as summary_file:
+    def write_summary(self, summary_file_path):
+        with open(summary_file_path, 'w') as summary_file:
             summary_file.writelines(self.generate_summary())
+
+    def extract_matches(self, target_path):
+        for arch in self.valid_archives:
+            if arch.matches:
+                arch.extract_best_match(target_path)
 
 
 def get_prefs(json_path):
@@ -189,28 +180,26 @@ def get_prefs(json_path):
         return json.load(json_file)
 
 
-# def get_dump_code_regexes(simple_dump_codes, numeral_dump_codes):
-#     simple_dc_insert = ','.join(simple_dump_codes)
-#     numeral_dc_insert = ','.join(numeral_dump_codes)
-#     # Use old-style string formatting for clarity since regex uses {}
-#     return [
-#         re.compile("^[%s][0-9]{1}" % numeral_dc_insert),
-#         re.compile("[%s]" % simple_dc_insert)
-#     ]
-
 def get_dump_code_regexes(ok_dump_codes):
     regexes = []
     for code in ok_dump_codes:
         regexes.append(re.compile("^[%s][0-9]{0,2}" % code))
     return regexes
 
+def process(prefs):
+    root = RomRootFolder(prefs['rootDir'], prefs['summaryFilePath'])
+    ok_dump_regexes = get_dump_code_regexes(prefs['okDumpCodes'])
+    root.sort(ok_dump_regexes, prefs['okRoCodes'])
+    if prefs['writeLog'] is True:
+        root.write_summary(prefs['logPath'])
+    if prefs['writeFiles'] is True:
+        root.extract_matches(prefs['targetDir'])
+
 prefs = get_prefs('./my_json/genesis_vm.json')
 
-root = RomRootFolder(prefs['rootDir'], prefs['summaryFilePath'])
 
-ok_dump_regexes = get_dump_code_regexes(
-    prefs['okDumpCodes'])
 
-root.sort(ok_dump_regexes, prefs['okRoCodes'])
 
-root.write_summary()
+
+
+
