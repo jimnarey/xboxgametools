@@ -15,20 +15,24 @@ class RomFile:
         self.dir_path, self.base_name = os.path.split(file_path)
         self.new_base_name = self.base_name
 
-    def replace_case_insensitive(self, sub_string, replacement):
-        redata = re.compile(re.escape(sub_string), re.IGNORECASE)
-        self.new_base_name = redata.sub('replacement', self.new_base_name)
+    def replace_sub_string(self, sub_string, replacement, case_sensitive=True):
+        if case_sensitive:
+            self.new_base_name = self.new_base_name.replace(sub_string, replacement)  # No if check for substring
+        else:
+            redata = re.compile(re.escape(sub_string), re.IGNORECASE)
+            self.new_base_name = redata.sub('replacement', self.new_base_name)
 
-    def replace_case_sensitive(self, sub_string, replacement):
-        if sub_string in self.new_base_name:
-            self.new_base_name = self.new_base_name.replace(sub_string, replacement)
+    # def replace_case_insensitive(self, sub_string, replacement):
+    #     redata = re.compile(re.escape(sub_string), re.IGNORECASE)
+    #     self.new_base_name = redata.sub('replacement', self.new_base_name)
 
-    def replace_sub_strings(self, sub_strings, replacement, case_sensitive=True):
+    # def replace_case_sensitive(self, sub_string, replacement):
+    #     if sub_string in self.new_base_name:
+    #         self.new_base_name = self.new_base_name.replace(sub_string, replacement)
+
+    def replace_many(self, sub_strings, replacement, case_sensitive):
         for sub_string in sub_strings:
-            if case_sensitive:
-                self.replace_case_sensitive(sub_string, replacement)
-            else:
-                self.replace_case_insensitive(sub_string, replacement)
+            self.replace_sub_string(sub_string, replacement, case_sensitive)
 
     def orig_length(self):
         return len(self.base_name)
@@ -60,21 +64,3 @@ def process(prefs):
     for file in root.files:
         if prefs['illegalChars']:
             file.replace_sub_strings(prefs['illegalChars'], '')
-
-        if prefs['caseSensitive']['removeFromAll']:
-            file.replace_sub_strings(prefs['caseSensitive']['removeFromAll'], '')
-        if prefs['caseSensitive']['replaceInAll']:
-            file.replace_sub_strings(prefs['caseSensitive']['replaceInAll'])
-        if prefs['caseSensitive']['removeFromLong']:
-            pass
-        if prefs['caseSensitive']['replaceInLong']:
-            pass
-
-        if prefs['nonCaseSensitive']['removeFromAll']:
-            file.replace_sub_strings(prefs['nonCaseSensitive']['removeFromAll'], '', case_sensitive=False)
-        if prefs['nonCaseSensitive']['replaceInAll']:
-            pass
-        if prefs['nonCaseSensitive']['removeFromLong']:
-            pass
-        if prefs['nonCaseSensitive']['replaceInLong']:
-            pass
