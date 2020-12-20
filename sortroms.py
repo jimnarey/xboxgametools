@@ -1,8 +1,10 @@
 import os
 import re
 import json
+from pathlib import Path
+# import pprint
+from optparse import OptionParser
 import py7zr
-import pprint
 from py7zr import Bad7zFile
 
 
@@ -95,6 +97,7 @@ class ArchiveFile:
             arch.extract(path=target_path, targets=[entry_name])
 
     def extract_best_match(self, target_path):
+        print('Extracting: {0}'.format(self.matches[0].entry_name))
         self.extract_entry(target_path, self.matches[0].entry_name)
 
 
@@ -132,23 +135,28 @@ class RomRootFolder:
     def sort(self, ok_dump_regexes, ok_ro_codes):
         for arch in self.valid_archives:
             arch.get_matches(ok_dump_regexes, ok_ro_codes)
- 
+
     def generate_summary(self):
+        has_matches = 0
+        no_matches = 0
         has_matches_lines = []
         no_matches_lines = []
         for arch in self.valid_archives:
             if arch.num_matches():
+                has_matches += 1
                 has_matches_lines.append(arch.summary())
-                print(arch.file_path)
+                # print(arch.file_path)
                 has_matches_lines.append(arch.matches[0].entry_name)
-                has_matches_lines.append('\n\n') 
+                has_matches_lines.append('\n\n')
             else:
+                no_matches += 1
                 no_matches_lines.append(arch.summary())
                 for entry in arch.all_entries:
                     no_matches_lines.append(
                         '{entry}\n'.format(entry=entry.entry_name))
                 no_matches_lines.append('\n')
-        return has_matches_lines + no_matches_lines
+        headlines = ['Total archives: {0}\n'.format(len(self.valid_archives)), 'With matches: {0}\n'.format(has_matches), 'No matches: {0}\n'.format(no_matches), '\n']
+        return headlines + has_matches_lines + no_matches_lines
 
     def write_summary(self, summary_file_path):
         with open(summary_file_path, 'w') as summary_file:
@@ -171,14 +179,26 @@ def get_dump_code_regexes(ok_dump_codes):
         regexes.append(re.compile("^[%s][0-9]{0,2}" % code))
     return regexes
 
+
 def process(prefs):
     root = RomRootFolder(prefs['rootDir'])
     ok_dump_regexes = get_dump_code_regexes(prefs['okDumpCodes'])
     root.sort(ok_dump_regexes, prefs['okRoCodes'])
-    if prefs['writeLog'] is True:
+    if prefs['writeSummary'] is True:
         root.write_summary(prefs['summaryFilePath'])
     if prefs['writeFiles'] is True:
+        if not os.path.isdir(prefs['targetDir']):
+            target_path = Path(prefs['targetDir'])
+            target_path.mkdir(parents=True, exist_ok=True)
         root.extract_matches(prefs['targetDir'])
 
-prefs = get_prefs('./my_json/genesis_vm.json')
+
+parser = OptionParser()
+parser.add_option('-j', '--json', dest='json_prefs', help='Specify input json file')
+(options, args) = parser.parse_args()
+if options.json_prefs is None:
+    print(parser.usage)
+    exit(0)
+
+prefs = get_prefs(options.json_prefs)
 process(prefs)
