@@ -64,6 +64,7 @@ class ArchiveFile:
                 if code in entry.ro_codes:
                     self.ok_ro.append(entry)
 
+    # TO DO - change this to catch translations
     def _cross_ref_matches(self):
         self.matches = [
             entry for entry in self.ok_ro if entry in self.ok_dumps]
@@ -176,7 +177,8 @@ def get_prefs(json_path):
 def get_dump_code_regexes(ok_dump_codes):
     regexes = []
     for code in ok_dump_codes:
-        regexes.append(re.compile("^[%s][0-9]{0,2}" % code))
+        # regexes.append(re.compile("^[%s][0-9]{0,2}" % code))
+        regexes.append(re.compile("^%s[0-9]{0,2}" % code))
     return regexes
 
 
