@@ -1,0 +1,21 @@
+{
+    "rootDir": "",
+    "targetDir": "",
+    "summaryFilePath": "",
+    "removeAll": [",", ":", "+", "?", "=", "|", "/", "*"],
+    "maxFileNameLength": 42,
+    "replace": [
+        {
+            "pattern": ", The",
+            "replacement": "",
+            "caseSensitive": true,
+            "longOnly": true
+        },
+        {
+            "pattern": "disk",
+            "replacement": "D",
+            "caseSensitive": false,
+            "longOnly": true
+        }
+    ]
+}
