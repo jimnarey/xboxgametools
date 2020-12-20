@@ -2,61 +2,79 @@ import json
 import re
 import os
 
+
 def get_prefs(json_path):
     with open(json_path, 'r') as json_file:
         return json.load(json_file)
 
 
-# class RomFile:
+class RomFile:
 
-#     def __init__(path, basename):
-#         self.path = path
-#         self.basename = basename
+    def __init__(self, file_path):
+        self.full_path = file_path
+        self.dir_path, self.base_name = os.path.split(file_path)
+        self.new_base_name = self.base_name
 
-# class RootDir:
+    def replace_case_insensitive(self, sub_string, replacement):
+        redata = re.compile(re.escape(sub_string), re.IGNORECASE)
+        self.new_base_name = redata.sub('replacement', self.new_base_name)
 
-#     def __init__(dir_path):
-#         self.dir_path = dir_path
-#         self.files = []
+    def replace_case_sensitive(self, sub_string, replacement):
+        if sub_string in self.new_base_name:
+            self.new_base_name = self.new_base_name.replace(sub_string, replacement)
 
-#     def get_files(dir_path):
-#         for root, dirs, files in os.walk(self.dir_path):
-#                 for file in files:
-#                     self.file_paths.append(RomFile(root, basename))
+    def replace_sub_strings(self, sub_strings, replacement, case_sensitive=True):
+        for sub_string in sub_strings:
+            if case_sensitive:
+                self.replace_case_sensitive(sub_string, replacement)
+            else:
+                self.replace_case_insensitive(sub_string, replacement)
 
-def get_files(dir_path):
-    file_paths = []
-    for root, dirs, files in os.walk(dir_path):
+    def orig_length(self):
+        return len(self.base_name)
+
+    def current_length(self):
+        return len(self.new_base_name)
+
+    def new_file_path(self):
+        return os.path.join(self.dir_path, self.new_base_name)
+
+
+class RootDir:
+
+    def __init__(self, dir_path):
+        self.dir_path = dir_path
+        self.files = []
+
+    def get_files(self, dir_path):
+        for root, dirs, files in os.walk(self.dir_path):
             for file in files:
-                file_paths.append(os.path.join(root, file))
-    return file_paths
+                self.file_paths.append(RomFile(os.path.join(root, file)))
 
 
-def truncate_disk_num(file_name):
-    redata = re.compile(re.escape('disk'), re.IGNORECASE)
-    return redata.sub('D', file_name)
+prefs = get_prefs('./my_json/amiga_rename_vm.json')
 
 
-def remove_the(file_name):
-    if ', The' in file_name:
-        return file_name.replace(', The', '')
-    return file_name
+def process(prefs):
+    root = RootDir(prefs['rootDir'])
+    for file in root.files:
+        if prefs['illegalChars']:
+            file.replace_sub_strings(prefs['illegalChars'], '')
 
+        if prefs['caseSensitive']['removeFromAll']:
+            file.replace_sub_strings(prefs['caseSensitive']['removeFromAll'], '')
+        if prefs['caseSensitive']['replaceInAll']:
+            file.replace_sub_strings(prefs['caseSensitive']['replaceInAll'])
+        if prefs['caseSensitive']['removeFromLong']:
+            pass
+        if prefs['caseSensitive']['replaceInLong']:
+            pass
 
-def remove_illegal_chars(file_name):
-    new_name = file_name
-    for char in [',', ':', '+', '?', '=', '|']:
-        new_name = new_name.replace(char, '')
-    return new_name
-
-
-def get_illegal_names(file_paths):
-    new_file_paths = []
-    for file_path in file_paths:
-        if len(os.path.basename(file_path)) > 42:
-            print(os.path.basename)
-
-
-
-# prefs = get_prefs('./json/nameforexfat_template.json')
-file_paths = get_files('./fixtures')
+        if prefs['nonCaseSensitive']['removeFromAll']:
+            file.replace_sub_strings(prefs['nonCaseSensitive']['removeFromAll'], '', case_sensitive=False)
+        if prefs['nonCaseSensitive']['replaceInAll']:
+            pass
+        if prefs['nonCaseSensitive']['removeFromLong']:
+            pass
+        if prefs['nonCaseSensitive']['replaceInLong']:
+            pass

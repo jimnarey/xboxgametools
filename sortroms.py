@@ -100,15 +100,11 @@ class ArchiveFile:
 
 class RomRootFolder:
 
-    # def __init__(self, dir_path, summary_file_path):
     def __init__(self, dir_path):
         self.dir_path = dir_path
-        # self.summary_file_path = summary_file_path
         self.file_paths = []
         self.valid_archives = []
         self.invalid_file_paths = []
-        # self.has_matches = []
-        # self.no_matches = []
         self._get_file_paths()
         self._get_archives()
 
@@ -136,34 +132,23 @@ class RomRootFolder:
     def sort(self, ok_dump_regexes, ok_ro_codes):
         for arch in self.valid_archives:
             arch.get_matches(ok_dump_regexes, ok_ro_codes)
-            # arch.sort_matches(ok_dump_regexes, ok_ro_codes)
-
-    # def sort_by_has_matches(self):
-    #     self.has_matches = []
-    #     self.no_matches = []
-    #     for arch in self.valid_archives:
-    #         if arch.num_matches():
-    #             self.has_matches.append(arch)
-    #         else:
-    #             self.no_matches.append(arch)
-
+ 
     def generate_summary(self):
-        self.sort_by_has_matches()
-        summary_lines = ['\n', '\n']
-        for arch in self.has_matches:
-            summary_lines.append(arch.summary())
-            summary_lines.append(arch.matches[0].entry_name)
-            summary_lines.append('\n\n')
-        summary_lines.extend(['\n', '\n'])
-        for arch in self.no_matches:
-            summary_lines.append(arch.summary())
-            summary_lines.append(arch.matches[0].entry_name)
-            summary_lines.append('\n')
-            for entry in arch.all_entries:
-                summary_lines.append(
-                    '{entry}\n'.format(entry=entry.entry_name))
-            summary_lines.append('\n')
-        return summary_lines
+        has_matches_lines = []
+        no_matches_lines = []
+        for arch in self.valid_archives:
+            if arch.num_matches():
+                has_matches_lines.append(arch.summary())
+                print(arch.file_path)
+                has_matches_lines.append(arch.matches[0].entry_name)
+                has_matches_lines.append('\n\n') 
+            else:
+                no_matches_lines.append(arch.summary())
+                for entry in arch.all_entries:
+                    no_matches_lines.append(
+                        '{entry}\n'.format(entry=entry.entry_name))
+                no_matches_lines.append('\n')
+        return has_matches_lines + no_matches_lines
 
     def write_summary(self, summary_file_path):
         with open(summary_file_path, 'w') as summary_file:
@@ -187,19 +172,13 @@ def get_dump_code_regexes(ok_dump_codes):
     return regexes
 
 def process(prefs):
-    root = RomRootFolder(prefs['rootDir'], prefs['summaryFilePath'])
+    root = RomRootFolder(prefs['rootDir'])
     ok_dump_regexes = get_dump_code_regexes(prefs['okDumpCodes'])
     root.sort(ok_dump_regexes, prefs['okRoCodes'])
     if prefs['writeLog'] is True:
-        root.write_summary(prefs['logPath'])
+        root.write_summary(prefs['summaryFilePath'])
     if prefs['writeFiles'] is True:
         root.extract_matches(prefs['targetDir'])
 
 prefs = get_prefs('./my_json/genesis_vm.json')
-
-
-
-
-
-
-
+process(prefs)

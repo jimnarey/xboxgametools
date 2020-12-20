@@ -1,5 +1,5 @@
 {
-    "rootDir": "./fixtures",
-    "targetDir": "./namelog.txt",
+    "rootDir": "",
+    "targetDir": "",
     "logPath": ""
 }
