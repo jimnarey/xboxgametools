@@ -20,15 +20,22 @@ class FileRenamer:
         else:
             redata = re.compile(re.escape(sub_string), re.IGNORECASE)
             self.new_base_name = redata.sub(replacement, self.new_base_name)
-        self.cut_multi_whitespace()
+        self.cut_whitespace()
 
     def replace_many(self, sub_strings, replacement, case_sensitive):
         for sub_string in sub_strings:
             self.replace_sub_string(
                 sub_string, replacement, case_sensitive=case_sensitive)
 
-    def cut_multi_whitespace(self):
+    def remove_bracketed(self):
+        self.new_base_name = re.sub('[\(\[].*?[\)\]]', '', self.new_base_name)
+        self.cut_whitespace()
+
+    # Consider splitting, though safe this way
+    def cut_whitespace(self):
         self.new_base_name = ' '.join(self.new_base_name.split())
+        name_stem, name_ext = os.path.splitext(self.new_base_name)
+        self.new_base_name = '{0}{1}'.format(name_stem.rstrip(), name_ext)
 
     def apply_shorten_replacements(self, replace_specs):
         for replace_spec in replace_specs:
@@ -44,13 +51,14 @@ class FileRenamer:
         if compress_spec['subtitleMark'] in self.new_base_name:
             name_stem, name_ext = os.path.splitext(self.new_base_name)
             # Find the last occurance of text meeting the specified regex (e.g. '_Dxx')
-            preserve_text_occurances = re.findall(
-                compress_spec['preserveSuffix'], name_stem)
             preserve_text = ''
-            if preserve_text_occurances:
-                preserve_text = preserve_text_occurances[-1]
-                # Remove last occurance of found substring from name stem
-                name_stem = ''.join(name_stem.rsplit(preserve_text, 1))
+            if compress_spec['preserveSuffix']:
+                preserve_text_occurances = re.findall(
+                    compress_spec['preserveSuffix'], name_stem)
+                if preserve_text_occurances:
+                    preserve_text = preserve_text_occurances[-1]
+                    # Remove last occurance of found substring from name stem
+                    name_stem = ''.join(name_stem.rsplit(preserve_text, 1))
             subtitle = name_stem.split(compress_spec['subtitleMark'])[-1]
             name_stem = ''.join(name_stem.rsplit(subtitle, 1))
             # Replace full subtitle with abbreviation
@@ -68,7 +76,9 @@ class FileRenamer:
     def truncate(self):
         name_stem, name_ext = os.path.splitext(self.new_base_name)
         if len(name_stem) > self.max_length - len(name_ext):
-            self.new_base_name = '{0}{1}'.format(self.new_base_name[:self.max_length - len(name_ext)], name_ext)
+            self.new_base_name = '{0}{1}'.format(
+                self.new_base_name[:self.max_length - len(name_ext)], name_ext)
+            self.cut_whitespace()
             self.truncated = True
 
     def orig_length(self):
@@ -79,6 +89,11 @@ class FileRenamer:
 
     def new_file_path(self):
         return os.path.join(self.dir_path, self.new_base_name)
+
+    # Add check for filename already exists error
+    def rename(self):
+        os.rename(os.path.join(self.dir_path, self.base_name),
+                  os.path.join(self.dir_path, self.new_base_name))
 
 
 class RenameRoot:
@@ -101,9 +116,9 @@ class RenameRoot:
         for file in self.files:
             if file.base_name != file.new_base_name:
                 changed_names.append('{0}: {1} chars -> {2}: {3} chars\n'.format(file.base_name,
-                                                                               file.orig_length(),
-                                                                               file.new_base_name,
-                                                                               file.current_length()))
+                                                                                 file.orig_length(),
+                                                                                 file.new_base_name,
+                                                                                 file.current_length()))
         return changed_names
 
     def get_long_files(self):
@@ -135,13 +150,17 @@ class RenameRoot:
             for replace_spec in replace_specs:
                 self.replace_in_file(file, replace_spec)
 
+    def remove_bracketed(self):
+        for file in self.files:
+            file.remove_bracketed()
+
     def shorten_long_names(self, replace_specs, compress_spec):
         for file in self.files:
             file.ordered_shorten(replace_specs, compress_spec)
 
-    def cut_multi_whitespace(self):
+    def execute_renames(self):
         for file in self.files:
-            file.cut_multi_whitespace()
+            file.rename()
 
 
 def get_prefs(json_path):
@@ -167,11 +186,21 @@ prefs = get_prefs(options.json_prefs)
 
 def process(prefs):
     root = RenameRoot(prefs['rootDir'], prefs['maxFileNameLength'])
-    root.remove_illegal_strings(prefs['illegalStrings'])
-    root.make_replacements(prefs['replaceInAll'])
-    root.shorten_long_names(
-        prefs['replaceToShorten'], prefs['subtitleCompress'])
-    write_summary(prefs['summaryFilePath'], root.get_changes() + ['\n\n\n\n'] + root.get_truncated_files() + ['\n\n\n\n'] + root.get_long_files())
+    # print(bool(prefs['illegalStrings']))
+    if prefs['illegalStrings']:
+        root.remove_illegal_strings(prefs['illegalStrings'])
+    if prefs['replaceInAll']:
+        root.make_replacements(prefs['replaceInAll'])
+    if prefs['removeBracketedText']:
+        root.remove_bracketed()
+    if prefs['shortenNames']:
+        root.shorten_long_names(
+            prefs['replaceToShorten'], prefs['subtitleCompress'])
+    if prefs['writeSummary']:
+        write_summary(prefs['summaryFilePath'], root.get_changes(
+        ) + ['\n\n\n\n'] + root.get_truncated_files() + ['\n\n\n\n'] + root.get_long_files())
+    if prefs['executeRenames']:
+        root.execute_renames()
 
 
 process(prefs)
