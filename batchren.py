@@ -51,6 +51,7 @@ class FileRenamer:
         if compress_spec['subtitleMark'] in self.new_base_name:
             name_stem, name_ext = os.path.splitext(self.new_base_name)
             # Find the last occurance of text meeting the specified regex (e.g. '_Dxx')
+            # TO DO - allow multiple suffix types (regexes)
             preserve_text = ''
             if compress_spec['preserveSuffix']:
                 preserve_text_occurances = re.findall(
