@@ -174,17 +174,6 @@ def write_summary(summary_file_path, summary_lines):
         summary_file.writelines(summary_lines)
 
 
-parser = OptionParser()
-parser.add_option('-j', '--json', dest='json_prefs',
-                  help='Specify input json file')
-(options, args) = parser.parse_args()
-if options.json_prefs is None:
-    print(parser.usage)
-    exit(0)
-
-prefs = get_prefs(options.json_prefs)
-
-
 def process(prefs):
     root = RenameRoot(prefs['rootDir'], prefs['maxFileNameLength'])
     # print(bool(prefs['illegalStrings']))
@@ -203,5 +192,16 @@ def process(prefs):
     if prefs['executeRenames']:
         root.execute_renames()
 
+if __name__ == "__main__":
 
-process(prefs)
+    parser = OptionParser()
+    parser.add_option('-j', '--json', dest='json_prefs',
+                    help='Specify input json file')
+    (options, args) = parser.parse_args()
+    if options.json_prefs is None:
+        print(parser.usage)
+        exit(0)
+
+    prefs = get_prefs(options.json_prefs)
+
+    process(prefs)
