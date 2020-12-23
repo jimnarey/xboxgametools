@@ -91,6 +91,10 @@ class FileRenamer:
     def new_file_path(self):
         return os.path.join(self.dir_path, self.new_base_name)
 
+    # def process_actions(self, illegal_strings, rep_in_all_specs, shorten=False,
+    #                     rep_to_shorten_specs=None, subtitle_compress_spec=None):
+    #     self.replace_many(illegal_strings, '', True)
+
     # Add check for filename already exists error
     def rename(self):
         os.rename(os.path.join(self.dir_path, self.base_name),
@@ -136,9 +140,9 @@ class RenameRoot:
                 truncated_files.append('{0}\n'.format(file.new_base_name))
         return truncated_files
 
-    def remove_illegal_strings(self, illegal_strings):
-        for file in self.files:
-            file.replace_many(illegal_strings, '', True)
+    # def remove_illegal_strings(self, illegal_strings):
+    #     for file in self.files:
+    #         file.replace_many(illegal_strings, '', True)
 
     def replace_in_file(self, file, replace_spec):
         file.replace_sub_string(
@@ -146,25 +150,44 @@ class RenameRoot:
             replace_spec['replacement'],
             replace_spec['caseSensitive'])
 
-    def make_replacements(self, replace_specs):
+    # def make_replacements(self, replace_specs):
+    #     for file in self.files:
+    #         for replace_spec in replace_specs:
+    #             self.replace_in_file(file, replace_spec)
+
+    # def remove_bracketed(self):
+    #     for file in self.files:
+    #         file.remove_bracketed()
+
+    # def shorten_long_names(self, replace_specs, compress_spec):
+    #     for file in self.files:
+    #         file.ordered_shorten(replace_specs, compress_spec)
+
+    def process_actions(self, rename_prefs):
         for file in self.files:
-            for replace_spec in replace_specs:
-                self.replace_in_file(file, replace_spec)
+            if rename_prefs['illegalStrings']:
+                # pass
+                file.replace_many(rename_prefs['illegalStrings'], '', True)
+            if rename_prefs['replaceInAll']:
+                for replace_spec in rename_prefs['replaceInAll']:
+                    self.replace_in_file(file, replace_spec)
+                # self.make_replacements(rename_prefs['replaceInAll'])
+            if rename_prefs['removeBracketedText']:
+                file.remove_bracketed()
+            if rename_prefs['shortenNames']:
+                file.ordered_shorten(rename_prefs['replaceToShorten'], rename_prefs['subtitleCompressSpec'])
+                # self.shorten_long_names(
+                #     rename_prefs['replaceToShorten'], rename_prefs['subtitleCompressSpec'])
+            if rename_prefs['executeRenames']:
+                # self.execute_renames()
+                file.rename()
 
-    def remove_bracketed(self):
-        for file in self.files:
-            file.remove_bracketed()
-
-    def shorten_long_names(self, replace_specs, compress_spec):
-        for file in self.files:
-            file.ordered_shorten(replace_specs, compress_spec)
-
-    def execute_renames(self):
-        for file in self.files:
-            file.rename()
+    # def execute_renames(self):
+    #     for file in self.files:
+    #         file.rename()
 
 
-def get_prefs(json_path):
+def get_rename_prefs(json_path):
     with open(json_path, 'r') as json_file:
         return json.load(json_file)
 
@@ -174,34 +197,39 @@ def write_summary(summary_file_path, summary_lines):
         summary_file.writelines(summary_lines)
 
 
-def process(prefs):
-    root = RenameRoot(prefs['rootDir'], prefs['maxFileNameLength'])
-    # print(bool(prefs['illegalStrings']))
-    if prefs['illegalStrings']:
-        root.remove_illegal_strings(prefs['illegalStrings'])
-    if prefs['replaceInAll']:
-        root.make_replacements(prefs['replaceInAll'])
-    if prefs['removeBracketedText']:
-        root.remove_bracketed()
-    if prefs['shortenNames']:
-        root.shorten_long_names(
-            prefs['replaceToShorten'], prefs['subtitleCompress'])
-    if prefs['writeSummary']:
-        write_summary(prefs['summaryFilePath'], root.get_changes(
+def process(rename_prefs):
+    root = RenameRoot(rename_prefs['rootDir'], rename_prefs['maxFileNameLength'])
+    root.process_actions(rename_prefs)
+    if rename_prefs['writeSummary']:
+        write_summary(rename_prefs['summaryFilePath'], root.get_changes(
         ) + ['\n\n\n\n'] + root.get_truncated_files() + ['\n\n\n\n'] + root.get_long_files())
-    if prefs['executeRenames']:
-        root.execute_renames()
+    # print(bool(rename_prefs['illegalStrings']))
+    # if rename_prefs['illegalStrings']:
+    #     root.remove_illegal_strings(rename_prefs['illegalStrings'])
+    # if rename_prefs['replaceInAll']:
+    #     root.make_replacements(rename_prefs['replaceInAll'])
+    # if rename_prefs['removeBracketedText']:
+    #     root.remove_bracketed()
+    # if rename_prefs['shortenNames']:
+    #     root.shorten_long_names(
+    #         rename_prefs['replaceToShorten'], rename_prefs['subtitleCompressSpec'])
+    # if rename_prefs['writeSummary']:
+    #     write_summary(rename_prefs['summaryFilePath'], root.get_changes(
+    #     ) + ['\n\n\n\n'] + root.get_truncated_files() + ['\n\n\n\n'] + root.get_long_files())
+    # if rename_prefs['executeRenames']:
+    #     root.execute_renames()
+
 
 if __name__ == "__main__":
 
     parser = OptionParser()
-    parser.add_option('-j', '--json', dest='json_prefs',
-                    help='Specify input json file')
+    parser.add_option('-j', '--json', dest='json_rename_prefs',
+                      help='Specify input json file')
     (options, args) = parser.parse_args()
-    if options.json_prefs is None:
+    if options.json_rename_prefs is None:
         print(parser.usage)
         exit(0)
 
-    prefs = get_prefs(options.json_prefs)
+    rename_prefs = get_rename_prefs(options.json_rename_prefs)
 
-    process(prefs)
+    process(rename_prefs)
