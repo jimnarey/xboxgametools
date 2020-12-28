@@ -2,3 +2,5 @@
 *.pyc
 .vscode/
 my_json/
+__pycache__
+logs/
