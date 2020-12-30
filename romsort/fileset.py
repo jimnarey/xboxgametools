@@ -2,7 +2,7 @@ import os
 import re
 import py7zr
 # from py7zr import Bad7zFile
-from fileentry import FileEntry
+from .fileentry import FileEntry
 
 class FileSet:
 

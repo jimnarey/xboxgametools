@@ -3,7 +3,7 @@ import re
 import json
 from pathlib import Path
 from optparse import OptionParser
-from rom_root_folder import RomRootFolder
+from romsort.rom_root_folder import RomRootFolder
 
 
 def get_prefs(json_path):
