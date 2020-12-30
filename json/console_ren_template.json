@@ -41,7 +41,7 @@
             "caseSensitive": false
         }
     ],
-    "subtitleCompress" : {
+    "subtitleCompressSpec" : {
         "subtitleMark": " - ",
         "preserveSuffix": ""
     }
