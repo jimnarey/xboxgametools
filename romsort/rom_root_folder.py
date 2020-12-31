@@ -1,6 +1,6 @@
 
 import os
-from .fileset import FileSet
+from .file_set import FileSet
 
 class RomRootFolder:
 

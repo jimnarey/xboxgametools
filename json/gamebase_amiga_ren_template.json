@@ -5,8 +5,6 @@
     "summaryFilePath": "",
     "multiFilesPerGame": false,
     "illegalStrings": [",", ":", "+", "?", "=", "|", "/", "*"],
-    "shortenNames": true,
-    "maxFileNameLength": 42,
     "removeBracketedText": false,
     "replaceInAll": [
         {
@@ -16,6 +14,8 @@
 
         }
     ],
+    "shortenNames": true,
+    "maxFileNameLength": 42,
     "replaceToShorten" : [
         {
             "pattern": "the ",
