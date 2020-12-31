@@ -1,6 +1,9 @@
 import os
 import re
 
+# TO DO - rationalise compress_subtitle
+# TO DO - allow separate target dir
+
 class FileRenamer:
 
     def __init__(self, file_path, max_length):

@@ -4,6 +4,8 @@ import py7zr
 # from py7zr import Bad7zFile
 from .file_entry import FileEntry
 
+# TO DO - change cross_ref etc to catch translations
+
 class FileSet:
 
     def __init__(self, file_path):
@@ -41,7 +43,6 @@ class FileSet:
                 if code in entry.ro_codes:
                     self.ok_ro.append(entry)
 
-    # TO DO - change this to catch translations
     def _cross_ref_matches(self):
         self.matches = [
             entry for entry in self.ok_ro if entry in self.ok_dumps]

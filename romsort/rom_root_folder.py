@@ -2,6 +2,9 @@
 import os
 from .file_set import FileSet
 
+# TO DO - Clean up summary maker
+# TO DO - zip output files
+
 class RomRootFolder:
 
     def __init__(self, dir_path):
@@ -37,7 +40,6 @@ class RomRootFolder:
         for arch in self.valid_archives:
             arch.get_matches(ok_dump_regexes, ok_ro_codes)
 
-    # TO DO - Tighten, move functionality to Archive and move to separate class
     def generate_summary(self):
         has_matches = 0
         no_matches = 0
