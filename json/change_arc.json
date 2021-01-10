@@ -1,3 +1,5 @@
 {
-    "rootDir": "/mnt/g/Romsets - Temp/roms/WHDLoadZip"
+    "rootDir": "/media/jimnarey/HDD_Data_B/Emulation - Working/Romsets - Temp/roms/WHDLoadZip/",
+    "targetDir": "/media/jimnarey/HDD_Data_B/Emulation - Working/Romsets - Temp/roms/WHDLoadZipNew/",
+    "tempDir": "/media/jimnarey/HDD_Data_B/Emulation - Working/Romsets - Temp/roms/temp_dir"
 }

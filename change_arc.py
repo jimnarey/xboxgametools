@@ -1,10 +1,28 @@
 import os
 from optparse import OptionParser
-from zipfile import ZipFile
+from pathlib import Path
+from zipfile import ZipFile, BadZipFile
 from lhafile import LhaFile
 
+test_source = '/media/jimnarey/HDD_Data_B/Emulation - Working/Romsets - Temp/roms/WHDLoadZip/0/1943_v1.2.zip'
+test_root = '/media/jimnarey/HDD_Data_B/Emulation - Working/Romsets - Temp/roms/test'
 
-def get_file_paths(root_dir):
+def get_stem(file_path):
+    stem, ext =  os.path.splitext(os.path.basename(file_path))
+    return stem
+
+def make_temp_dir_name(target_root, source_file_path):
+    return os.path.join(target_root, get_stem(source_file_path))
+    
+    
+def unzip(source_file, target_root):
+    try:
+        with ZipFile(source_file, 'r') as zf:
+            zf.extractall(path=make_temp_dir_name(target_root, source_file))
+    except BadZipFile:
+        print('{0}{1}'.format('Bad Zip: ', source_file))
+
+def change_arc(root_dir):
     file_paths = []
     for root, dirs, files in os.walk(root_dir):
         for file in files:
@@ -12,26 +30,11 @@ def get_file_paths(root_dir):
     return file_paths
 
 
-def zip_file(file_path):
-    stem, ext = os.path.splitext(file_path)
-    with ZipFile('{0}{1}'.format(stem, '.zip'), 'w') as zip:
-        zip.write(file_path)
-    os.remove(file_path)
-    # print(stem)
-    # print(ext)
+# parser = OptionParser()
+# parser.add_option('-d', '--dir', dest='root_dir', help='Specify root dir')
+# (options, args) = parser.parse_args()
+# if options.root_dir is None:
+#     print(parser.usage)
+#     exit(0)
 
 
-def zip_all(file_paths):
-    for file_path in file_paths:
-        zip_file(file_path)
-
-
-parser = OptionParser()
-parser.add_option('-d', '--dir', dest='root_dir', help='Specify root dir')
-(options, args) = parser.parse_args()
-if options.root_dir is None:
-    print(parser.usage)
-    exit(0)
-
-file_paths = get_file_paths(options.root_dir)
-zip_all(file_paths)
